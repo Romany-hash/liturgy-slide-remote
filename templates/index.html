@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Liturgy Remote</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* ── Header ── */
+        .header {
+            background: #16213e;
+            padding: 12px 16px;
+            text-align: center;
+            border-bottom: 2px solid #0f3460;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            color: #e94560;
+            margin-bottom: 4px;
+        }
+
+        .header .status {
+            font-size: 13px;
+            color: #a0a0a0;
+        }
+
+        .header .status.connected {
+            color: #4ecca3;
+        }
+
+        .header .status.error {
+            color: #e94560;
+        }
+
+        /* ── Main Buttons Area ── */
+        .controls {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 10px;
+        }
+
+        .btn {
+            flex: 1;
+            border: none;
+            border-radius: 16px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.1s, opacity 0.1s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+            opacity: 0.8;
+        }
+
+        .btn-next {
+            background: linear-gradient(135deg, #0f3460, #16213e);
+            color: #4ecca3;
+            border: 3px solid #0f3460;
+        }
+
+        .btn-prev {
+            background: linear-gradient(135deg, #16213e, #1a1a2e);
+            color: #e94560;
+            border: 3px solid #16213e;
+        }
+
+        .btn-label {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-label .arrow {
+            font-size: 48px;
+        }
+
+        .btn-label .text {
+            font-size: 20px;
+        }
+
+        /* ── Bottom Bar ── */
+        .bottom-bar {
+            background: #16213e;
+            padding: 12px 16px;
+            border-top: 2px solid #0f3460;
+        }
+
+        .goto-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .goto-row input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #0f3460;
+            border-radius: 10px;
+            background: #1a1a2e;
+            color: #ffffff;
+            font-size: 18px;
+            text-align: center;
+            outline: none;
+        }
+
+        .goto-row input::placeholder {
+            color: #555;
+        }
+
+        .goto-row input:focus {
+            border-color: #4ecca3;
+        }
+
+        .goto-row button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            background: #0f3460;
+            color: #ffffff;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .goto-row button:active {
+            background: #4ecca3;
+            color: #1a1a2e;
+        }
+
+        .slideshow-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .slideshow-controls button {
+            flex: 1;
+            padding: 8px;
+            border: 2px solid #0f3460;
+            border-radius: 10px;
+            background: transparent;
+            color: #a0a0a0;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .slideshow-controls button:active {
+            background: #0f3460;
+            color: #ffffff;
+        }
+
+        /* ── Last Action Feedback ── */
+        .feedback {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(78, 204, 163, 0.9);
+            color: #1a1a2e;
+            padding: 20px 40px;
+            border-radius: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 100;
+            transition: transform 0.15s ease-out, opacity 0.3s;
+            opacity: 0;
+        }
+
+        .feedback.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+
+        .feedback.error-fb {
+            background: rgba(233, 69, 96, 0.9);
+            color: #ffffff;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header -->
+    <div class="header">
+        <h1> ☦ريموت الليتروجيا </h1>
+        <div class="status connected" id="statusText">✅ متصل </div>
+    </div>
+
+    <!-- Main Buttons -->
+    <div class="controls">
+        <button class="btn btn-next" id="btnNext">
+            <div class="btn-label">
+                <span class="arrow">▶</span>
+                <span class="text">التالي</span>
+            </div>
+        </button>
+
+        <button class="btn btn-prev" id="btnPrev">
+            <div class="btn-label">
+                <span class="arrow">◀</span>
+                <span class="text">السابق</span>
+            </div>
+        </button>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="bottom-bar">
+        <div class="goto-row">
+            <input type="number" id="slideNum" placeholder="Slide #" min="1">
+            <button id="btnGoto">GO</button>
+        </div>
+        <div class="slideshow-controls">
+            <button id="btnStart">▶ Start Slideshow</button>
+            <button id="btnEnd">⏹ End Slideshow</button>
+        </div>
+    </div>
+
+    <!-- Feedback Popup -->
+    <div class="feedback" id="feedback"></div>
+
+    <script>
+        // ── Elements ──
+        const btnNext = document.getElementById('btnNext');
+        const btnPrev = document.getElementById('btnPrev');
+        const btnGoto = document.getElementById('btnGoto');
+        const btnStart = document.getElementById('btnStart');
+        const btnEnd = document.getElementById('btnEnd');
+        const slideNum = document.getElementById('slideNum');
+        const statusText = document.getElementById('statusText');
+        const feedback = document.getElementById('feedback');
+
+        let feedbackTimer = null;
+
+        // ── Show Feedback ──
+        function showFeedback(text, isError) {
+            clearTimeout(feedbackTimer);
+            feedback.textContent = text;
+            feedback.className = 'feedback show' + (isError ? ' error-fb' : '');
+            feedbackTimer = setTimeout(function() {
+                feedback.className = 'feedback';
+            }, 600);
+        }
+
+        // ── API Call ──
+        function sendCommand(url, body) {
+            var options = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            };
+            if (body) {
+                options.body = JSON.stringify(body);
+            }
+
+            fetch(url, options)
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.ok) {
+                        statusText.textContent = 'متصل✅';
+                        statusText.className = 'status connected';
+                    } else {
+                        showFeedback('Error: ' + (data.error || 'Unknown'), true);
+                    }
+                })
+                .catch(function(err) {
+                    statusText.textContent = 'Disconnected ❌';
+                    statusText.className = 'status error';
+                    showFeedback('Connection Lost!', true);
+                });
+        }
+
+        // ── Button Handlers ──
+        btnNext.addEventListener('click', function() {
+            showFeedback('NEXT ▶', false);
+            sendCommand('/api/next');
+        });
+
+        btnPrev.addEventListener('click', function() {
+            showFeedback('◀ PREV', false);
+            sendCommand('/api/prev');
+        });
+
+        btnGoto.addEventListener('click', function() {
+            var num = parseInt(slideNum.value);
+            if (!num || num < 1) {
+                showFeedback('Enter a valid number', true);
+                return;
+            }
+            showFeedback('الي → ' + num, false);
+            sendCommand('/api/goto', { slide: num });
+            slideNum.value = '';
+        });
+
+        btnStart.addEventListener('click', function() {
+            showFeedback('▶ Starting...', false);
+            sendCommand('/api/slideshow/start');
+        });
+
+        btnEnd.addEventListener('click', function() {
+            showFeedback('⏹ Ending...', false);
+            sendCommand('/api/slideshow/end');
+        });
+
+        // Enter key on number input triggers GO
+        slideNum.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                btnGoto.click();
+            }
+        });
+
+        // ── Heartbeat: check connection every 10 seconds ──
+        setInterval(function() {
+            fetch('/api/status')
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    statusText.textContent = 'Connected ✅';
+                    statusText.className = 'status connected';
+                })
+                .catch(function() {
+                    statusText.textContent = 'Disconnected ❌';
+                    statusText.className = 'status error';
+                });
+        }, 10000);
+    </script>
+</body>
+</html>
